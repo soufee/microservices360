@@ -36,7 +36,7 @@
                             <archive>
                                 <manifest>
                                     <addClasspath>true</addClasspath>
-                                    <mainClass>ru.ashamaz.chat.ClientWindow</mainClass>
+                                    <mainClass>ru.ashamaz.chat.Game</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

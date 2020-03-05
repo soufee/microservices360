@@ -1,14 +1,17 @@
 package ru.ashamaz.network;
 
+import ru.ashamaz.model.Message;
+
 import java.io.*;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
-public class TCPConnection {
+public class TCPConnection implements Serializable {
     private final Socket socket;
     private final Thread rxThread;
-    private final BufferedReader in;
-    private final BufferedWriter out;
+    private final ObjectInputStream inputStream;
+    private final ObjectOutputStream outStream;
+
     private final TCPConnectionListener eventListener;
 
     public TCPConnection(final TCPConnectionListener eventListener, String ip, int port) throws IOException {
@@ -18,17 +21,22 @@ public class TCPConnection {
     public TCPConnection(final TCPConnectionListener eventListener, Socket socket) throws IOException {
         this.eventListener = eventListener;
         this.socket = socket;
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+        outStream = new ObjectOutputStream(socket.getOutputStream());
+        outStream.flush();
+        inputStream = new ObjectInputStream(socket.getInputStream());
         rxThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     eventListener.onConnectionReady(TCPConnection.this);
                     while (!rxThread.isInterrupted()) {
-                        eventListener.onReceiveString(TCPConnection.this, in.readLine());
+                        byte[] bytes = (byte[]) inputStream.readObject();
+                        ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+                        ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                        Message message = (Message) objectInputStream.readObject();
+                        eventListener.onReceiveMessage(TCPConnection.this, message);
                     }
-                } catch (IOException e) {
+                } catch (IOException | ClassNotFoundException e) {
                     eventListener.onException(TCPConnection.this, e);
                 } finally {
                     eventListener.onDisconnect(TCPConnection.this);
@@ -38,13 +46,19 @@ public class TCPConnection {
         rxThread.start();
     }
 
-    public synchronized void sendString(String text) {
-        try {
-            out.write(text + "\r\n");
-            out.flush();
-        } catch (IOException e) {
+    public synchronized void sendMessage(Message message) {
+        byte[] messageByteArray = null;
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+             ObjectOutputStream outputStream = new ObjectOutputStream(byteArrayOutputStream)
+        ) {
+            outputStream.writeObject(message);
+            outputStream.flush();
+
+            messageByteArray = byteArrayOutputStream.toByteArray();
+            outStream.writeObject(Objects.requireNonNull(messageByteArray));
+            outStream.flush();
+        } catch (Exception e) {
             eventListener.onException(TCPConnection.this, e);
-            disconnect();
         }
     }
 
