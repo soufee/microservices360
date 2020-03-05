@@ -2,16 +2,25 @@ package ru.ashamaz.chat;
 
 import ru.ashamaz.model.AbstractClient;
 import ru.ashamaz.model.Message;
-import ru.ashamaz.model.Notification;
 import ru.ashamaz.network.TCPConnection;
 
 import java.io.IOException;
+import java.util.Scanner;
 
 public class Player extends AbstractClient {
     private int limit;
+    private String name;
 
     public Player(int limit) {
         this.limit = limit;
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter your name...");
+        name = scanner.nextLine();
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 
     public int getLimit() {
@@ -19,9 +28,12 @@ public class Player extends AbstractClient {
     }
 
     public void replyToMessage(Message message) {
-        System.out.println("Replying to message "+message.getMessage());
+        System.out.println("Replying to message " + message.getMessage());
         incrementSentMessageCounter();
-        if (countSentMessages >= limit) return;
+        if (countSentMessages >= limit) {
+            connection.disconnect();
+            return;
+        }
         Message m = Message.createMessage(message.getMessage() + " " + countSentMessages, message.getFrom(), connection.toString());
         connection.sendMessage(m);
     }
@@ -38,23 +50,14 @@ public class Player extends AbstractClient {
 
     @Override
     public void onReceiveMessage(TCPConnection tcpConnection, Message message) {
-        System.out.println("Message recieved ==> "+message.getMessage());
-        if (message instanceof Notification) {
-            Notification notification = (Notification) message;
-            if ("connected".equals(notification.getNotification())) {
-                String[] strings = notification.getAttachedMessage().getMessage().split(" ");
-                int connectionLength = Integer.parseInt(strings[strings.length - 1]);
-                if ((connectionLength > 1) && !notification.getClient().equals(connection.toString())) {
-                    initiateMessage(notification.getClient());
-                }
-            }
-        } else {
-            String to = message.getTo();
-            String from = message.getFrom();
-            if (to != null) connection.sendMessage(message);
-            else if (from != null) replyToMessage(message);
-            else System.out.println(message.getMessage());
-        }
+        System.out.println("Message recieved ==> " + message.getMessage());
+
+        String to = message.getTo();
+        String from = message.getFrom();
+        if (to != null) connection.sendMessage(message);
+        else if (from != null) replyToMessage(message);
+        else System.out.println(message.getMessage());
+
 
     }
 
