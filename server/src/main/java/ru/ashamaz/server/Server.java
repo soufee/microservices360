@@ -11,7 +11,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ChatServer implements TCPConnectionListener {
+public class Server implements TCPConnectionListener {
     private static final int LIMIT = 2;
     private final Map<String, TCPConnection> connections = new HashMap<>();
     protected Map<Commands, Function> commands = new EnumMap<>(Commands.class);
@@ -19,7 +19,7 @@ public class ChatServer implements TCPConnectionListener {
     private Gson gson = new Gson();
     private CommandFactory factory = new CommandFactoryImpl();
 
-    private ChatServer() {
+    private Server() {
         System.out.println("Server running...");
         commands.put(Commands.REGISTRATION, (value, conn) -> {
             RegistrationRequest request = gson.fromJson(value, RegistrationRequest.class);
@@ -54,7 +54,7 @@ public class ChatServer implements TCPConnectionListener {
     }
 
     public static void main(String[] args) {
-        new ChatServer();
+        new Server();
     }
 
     @Override

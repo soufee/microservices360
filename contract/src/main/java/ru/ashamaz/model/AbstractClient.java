@@ -6,7 +6,6 @@ import ru.ashamaz.network.TCPConnectionListener;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.Objects;
 
 public abstract class AbstractClient implements TCPConnectionListener {
     protected TCPConnection connection;

@@ -36,7 +36,7 @@
                             <archive>
                                 <manifest>
                                     <addClasspath>true</addClasspath>
-                                    <mainClass>ru.ashamaz.server.ChatServer</mainClass>
+                                    <mainClass>ru.ashamaz.server.Server</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
@@ -51,7 +51,7 @@
     <dependencies>
         <dependency>
             <groupId>ru.ashamaz</groupId>
-            <artifactId>network</artifactId>
+            <artifactId>contract</artifactId>
             <version>2</version>
         </dependency>
     </dependencies>
