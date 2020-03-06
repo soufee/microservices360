@@ -1,20 +1,45 @@
 package ru.ashamaz.server;
 
-import ru.ashamaz.model.Message;
+import com.google.gson.Gson;
+import ru.ashamaz.model.*;
 import ru.ashamaz.network.TCPConnection;
 import ru.ashamaz.network.TCPConnectionListener;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ChatServer implements TCPConnectionListener {
     private static final int LIMIT = 2;
     private final Map<String, TCPConnection> connections = new HashMap<>();
+    protected Map<Commands, Function> commands = new EnumMap<>(Commands.class);
+    protected Map<String, String> players = new HashMap<>();
+    private Gson gson = new Gson();
+    private CommandFactory factory = new CommandFactoryImpl();
 
     private ChatServer() {
         System.out.println("Server running...");
+        commands.put(Commands.REGISTRATION, value -> {
+            RegistrationRequest request = gson.fromJson(value, RegistrationRequest.class);
+            players.put(request.getClientName(), request.getTcpConnection());
+        });
+        commands.put(Commands.REQUEST, value -> {
+            RqCommand rqCommand = gson.fromJson(value, RqCommand.class);
+            if (rqCommand.getResponseBody() == null && rqCommand.getRequestBody() != null && !rqCommand.getRequestBody().isEmpty()) {
+               rqCommand.setResponseBody(players.keySet().stream().filter(s->!s.equalsIgnoreCase(rqCommand.getRequestBody())).findFirst().orElse(null));
+            }
+            connections.get(players.get(rqCommand.getRequestBody())).sendMessage(factory.getRequestCommand(rqCommand));
+        });
+        commands.put(Commands.MESSAGE, value -> {
+            Message message = gson.fromJson(value, Message.class);
+            if (message.getTo() != null) {
+                connections.get(players.get(message.getTo())).sendMessage(factory.getMessageCommand(message));
+            } else {
+                broadcast(factory.getMessageCommand(message));
+            }
+        });
         try (ServerSocket serverSocket = new ServerSocket(8189)) {
             while (true) {
                 try {
@@ -36,12 +61,12 @@ public class ChatServer implements TCPConnectionListener {
     public synchronized void onConnectionReady(TCPConnection tcpConnection) {
         if (connections.size() >= LIMIT) {
             Message message = Message.createMessage("Impossible to make connection. The Limit is reached", null, null);
-            broadcast(message);
+            broadcast(factory.getMessageCommand(message));
             tcpConnection.disconnect();
         } else {
             connections.put(tcpConnection.toString(), tcpConnection);
             Message message = Message.createMessage("Client connected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
-            broadcast(message);
+            broadcast(factory.getMessageCommand(message));
         }
     }
 
@@ -49,20 +74,12 @@ public class ChatServer implements TCPConnectionListener {
     public synchronized void onDisconnect(TCPConnection tcpConnection) {
         connections.remove(tcpConnection.toString());
         Message message = Message.createMessage("Client disconnected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
-        broadcast(message);
+        broadcast(factory.getMessageCommand(message));
     }
 
     @Override
-    public TCPConnectionListener getInstance() {
-        return this;
-    }
-
-    @Override
-    public synchronized void onReceiveMessage(TCPConnection tcpConnection, Message message) throws IOException {
-        System.out.println("Server has got a message " + message.getMessage());
-        TCPConnection to = connections.get(message.getTo());
-        if (to != null) to.sendMessage(message);
-        else sendToAllConnections(message.getMessage());
+    public synchronized void onReceiveMessage(TCPConnection tcpConnection, Command command) throws IOException {
+        commands.get(command.getType()).invoke(command.getData());
     }
 
     @Override
@@ -70,13 +87,8 @@ public class ChatServer implements TCPConnectionListener {
         System.out.println("TCPConnection exception: " + e);
     }
 
-    private void broadcast(Message m) {
-        connections.values().forEach(c -> c.sendMessage(m));
-    }
-
-    private void sendToAllConnections(String text) {
-        Message message = Message.createMessage(text, null, null);
-        broadcast(message);
+    private void broadcast(Command command) {
+        connections.values().forEach(c -> c.sendMessage(command));
     }
 
 }

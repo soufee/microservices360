@@ -4,6 +4,8 @@ import ru.ashamaz.network.TCPConnection;
 import ru.ashamaz.network.TCPConnectionListener;
 
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Objects;
 
 public abstract class AbstractClient implements TCPConnectionListener {
@@ -11,6 +13,9 @@ public abstract class AbstractClient implements TCPConnectionListener {
     public static final String IP_ADDR = "127.0.0.1";
     public static final int PORT = 8189;
     protected int countSentMessages = 0;
+    protected CommandFactory factory = new CommandFactoryImpl();
+
+    protected Map<Commands, Function> commands = new EnumMap<>(Commands.class);
 
     public String getName(){
         return "Connection "+IP_ADDR+":"+PORT;
@@ -36,16 +41,10 @@ public abstract class AbstractClient implements TCPConnectionListener {
         return ++countSentMessages;
     }
 
-    public void initiateMessage(String playerTo) {
-        Objects.requireNonNull(playerTo);
-        Message message = Message.createMessage("hello", playerTo, connection.toString());
-        connection.sendMessage(message);
-        incrementSentMessageCounter();
-    }
-
     @Override
     public void onConnectionReady(TCPConnection tcpConnection) {
         printMessage("Connection ready...");
+        connection.sendMessage(factory.getRegistrationCommand(this));
     }
 
     @Override
@@ -56,11 +55,6 @@ public abstract class AbstractClient implements TCPConnectionListener {
     @Override
     public void onException(TCPConnection tcpConnection, Exception e) {
         printMessage("Exception: " + e.getMessage());
-    }
-
-    @Override
-    public TCPConnectionListener getInstance() {
-        return this;
     }
 
     @Override

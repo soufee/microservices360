@@ -1,6 +1,6 @@
 package ru.ashamaz.network;
 
-import ru.ashamaz.model.Message;
+import ru.ashamaz.model.Command;
 
 import java.io.*;
 import java.net.Socket;
@@ -33,8 +33,8 @@ public class TCPConnection implements Serializable {
                         byte[] bytes = (byte[]) inputStream.readObject();
                         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
                         ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                        Message message = (Message) objectInputStream.readObject();
-                        eventListener.onReceiveMessage(TCPConnection.this, message);
+                        Command command = (Command) objectInputStream.readObject();
+                        eventListener.onReceiveMessage(TCPConnection.this, command);
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     eventListener.onException(TCPConnection.this, e);
@@ -46,12 +46,12 @@ public class TCPConnection implements Serializable {
         rxThread.start();
     }
 
-    public synchronized void sendMessage(Message message) {
-        byte[] messageByteArray = null;
+    public synchronized void sendMessage(Command command) {
+        byte[] messageByteArray;
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              ObjectOutputStream outputStream = new ObjectOutputStream(byteArrayOutputStream)
         ) {
-            outputStream.writeObject(message);
+            outputStream.writeObject(command);
             outputStream.flush();
 
             messageByteArray = byteArrayOutputStream.toByteArray();

@@ -1,6 +1,6 @@
 package ru.ashamaz.network;
 
-import ru.ashamaz.model.Message;
+import ru.ashamaz.model.Command;
 
 import java.io.IOException;
 
@@ -10,9 +10,8 @@ public interface TCPConnectionListener {
 
     void onDisconnect(TCPConnection tcpConnection);
 
-    void onReceiveMessage(TCPConnection tcpConnection, Message message) throws IOException;
+    void onReceiveMessage(TCPConnection tcpConnection, Command command) throws IOException;
 
     void onException(TCPConnection tcpConnection, Exception e);
 
-    TCPConnectionListener getInstance();
 }

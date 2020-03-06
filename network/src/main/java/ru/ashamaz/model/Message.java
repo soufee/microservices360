@@ -1,7 +1,5 @@
 package ru.ashamaz.model;
 
-import ru.ashamaz.network.TCPConnection;
-
 import java.io.Serializable;
 
 public class Message implements Serializable {
@@ -11,13 +9,13 @@ public class Message implements Serializable {
 
     public static Message createMessage(String message, String to, String from) {
         return new Message(message, to, from);
+    } //TODO удалить
+
+    public Message() {
+
     }
 
-    protected Message() {
-
-    }
-
-    private Message(String message, String to, String from) {
+    public Message(String message, String to, String from) {
         this.message = message;
         this.to = to;
         this.from = from;
