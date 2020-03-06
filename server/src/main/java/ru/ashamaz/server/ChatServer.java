@@ -21,18 +21,18 @@ public class ChatServer implements TCPConnectionListener {
 
     private ChatServer() {
         System.out.println("Server running...");
-        commands.put(Commands.REGISTRATION, value -> {
+        commands.put(Commands.REGISTRATION, (value, conn) -> {
             RegistrationRequest request = gson.fromJson(value, RegistrationRequest.class);
-            players.put(request.getClientName(), request.getTcpConnection());
+            players.put(request.getClientName(), conn.toString());
         });
-        commands.put(Commands.REQUEST, value -> {
+        commands.put(Commands.REQUEST, (value, conn) -> {
             RqCommand rqCommand = gson.fromJson(value, RqCommand.class);
             if (rqCommand.getResponseBody() == null && rqCommand.getRequestBody() != null && !rqCommand.getRequestBody().isEmpty()) {
                rqCommand.setResponseBody(players.keySet().stream().filter(s->!s.equalsIgnoreCase(rqCommand.getRequestBody())).findFirst().orElse(null));
             }
             connections.get(players.get(rqCommand.getRequestBody())).sendMessage(factory.getRequestCommand(rqCommand));
         });
-        commands.put(Commands.MESSAGE, value -> {
+        commands.put(Commands.MESSAGE, (value, conn) -> {
             Message message = gson.fromJson(value, Message.class);
             if (message.getTo() != null) {
                 connections.get(players.get(message.getTo())).sendMessage(factory.getMessageCommand(message));
@@ -60,12 +60,12 @@ public class ChatServer implements TCPConnectionListener {
     @Override
     public synchronized void onConnectionReady(TCPConnection tcpConnection) {
         if (connections.size() >= LIMIT) {
-            Message message = Message.createMessage("Impossible to make connection. The Limit is reached", null, null);
+            Message message = new Message("Impossible to make connection. The Limit is reached", null, null);
             broadcast(factory.getMessageCommand(message));
             tcpConnection.disconnect();
         } else {
             connections.put(tcpConnection.toString(), tcpConnection);
-            Message message = Message.createMessage("Client connected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
+            Message message = new Message ("Client connected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
             broadcast(factory.getMessageCommand(message));
         }
     }
@@ -73,13 +73,13 @@ public class ChatServer implements TCPConnectionListener {
     @Override
     public synchronized void onDisconnect(TCPConnection tcpConnection) {
         connections.remove(tcpConnection.toString());
-        Message message = Message.createMessage("Client disconnected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
+        Message message = new Message ("Client disconnected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
         broadcast(factory.getMessageCommand(message));
     }
 
     @Override
     public synchronized void onReceiveMessage(TCPConnection tcpConnection, Command command) throws IOException {
-        commands.get(command.getType()).invoke(command.getData());
+        commands.get(command.getType()).invoke(command.getData(), tcpConnection);
     }
 
     @Override

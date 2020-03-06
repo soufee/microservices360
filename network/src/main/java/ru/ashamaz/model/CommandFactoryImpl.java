@@ -6,7 +6,7 @@ public class CommandFactoryImpl implements CommandFactory {
     private Gson gson = new Gson();
     @Override
     public Command getRegistrationCommand(AbstractClient client) {
-        return new Command(Commands.REGISTRATION, gson.toJson(new RegistrationRequest(client.getName(), client.getConnection().toString())));
+        return new Command(Commands.REGISTRATION, gson.toJson(new RegistrationRequest(client.getName())));
     }
 
     @Override

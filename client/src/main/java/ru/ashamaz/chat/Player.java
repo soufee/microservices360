@@ -17,9 +17,9 @@ public class Player extends AbstractClient {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter your name...");
         name = scanner.nextLine();
-        commands.put(Commands.MESSAGE, value -> processMessage(parseMessage(value)));
-        commands.put(Commands.REQUEST, value -> processRequest(parseRequest(value)));
-        commands.put(Commands.REGISTRATION, value -> System.out.println("Not supported"));
+        commands.put(Commands.MESSAGE, (value, conn) -> processMessage(parseMessage(value)));
+        commands.put(Commands.REQUEST, (value, conn) -> processRequest(parseRequest(value)));
+        commands.put(Commands.REGISTRATION, (value, conn) -> System.out.println("Not supported"));
     }
 
     private void processRequest(RqCommand request) {
@@ -71,7 +71,7 @@ public class Player extends AbstractClient {
             connection.disconnect();
             return;
         }
-        Message m = Message.createMessage(message.getMessage() + " " + countSentMessages, message.getFrom(), connection.toString());
+        Message m = new Message(message.getMessage() + " " + countSentMessages, message.getFrom(), name);
         Command messageCommand = factory.getMessageCommand(m);
         connection.sendMessage(messageCommand);
     }
@@ -89,6 +89,6 @@ public class Player extends AbstractClient {
 
     @Override
     public void onReceiveMessage(TCPConnection tcpConnection, Command command) {
-        commands.get(command.getType()).invoke(command.getData());
+        commands.get(command.getType()).invoke(command.getData(), tcpConnection);
     }
 }

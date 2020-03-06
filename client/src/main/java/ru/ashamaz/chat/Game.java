@@ -23,7 +23,7 @@ public class Game {
                     Command requestCommand = factory.getRequestCommand(new RqCommand(player.getName(), null));
                     player.getConnection().sendMessage(requestCommand);
                 } else {
-                    Message m = Message.createMessage(s, null, player.getName());
+                    Message m = new Message (s, null, player.getName());
                     player.getConnection().sendMessage(factory.getMessageCommand(m));
                 }
             }

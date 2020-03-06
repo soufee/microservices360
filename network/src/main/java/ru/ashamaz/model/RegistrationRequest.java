@@ -4,14 +4,12 @@ import java.io.Serializable;
 
 public class RegistrationRequest implements Serializable {
     private String clientName;
-    private String tcpConnection;
 
     public RegistrationRequest() {
     }
 
-    public RegistrationRequest(String clientName, String tcpConnection) {
+    public RegistrationRequest(String clientName) {
         this.clientName = clientName;
-        this.tcpConnection = tcpConnection;
     }
 
     public String getClientName() {
@@ -22,11 +20,4 @@ public class RegistrationRequest implements Serializable {
         this.clientName = clientName;
     }
 
-    public String getTcpConnection() {
-        return tcpConnection;
-    }
-
-    public void setTcpConnection(String tcpConnection) {
-        this.tcpConnection = tcpConnection;
-    }
 }
