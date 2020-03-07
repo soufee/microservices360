@@ -2,6 +2,9 @@ package ru.ashamaz.model;
 
 import java.io.Serializable;
 
+/**
+ * Entity for Command types REGISTER and UNREGISTER
+ */
 public class RegistrationRequest implements Serializable {
     private String clientName;
 

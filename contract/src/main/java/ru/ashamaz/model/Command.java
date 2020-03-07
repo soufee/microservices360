@@ -2,6 +2,11 @@ package ru.ashamaz.model;
 
 import java.io.Serializable;
 
+/**
+ * The Command entity contains type and data in JSON
+ * Data can have different content, depending on type
+ */
+
 public class Command implements Serializable {
     private Commands type;
     private String data;

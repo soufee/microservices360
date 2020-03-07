@@ -2,6 +2,9 @@ package ru.ashamaz.model;
 
 import java.io.Serializable;
 
+/**
+ * An Entity for Command of type REQUEST
+ */
 public class RqCommand implements Serializable {
     private String requestBody;
     private String responseBody;

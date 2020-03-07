@@ -10,25 +10,35 @@ import java.net.ServerSocket;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
+/**
+ * The main Server class
+ * Implements TCPConnectionListener
+ * Contains maps of all connections, pplayers with names and commands, that it can process
+ */
 public class Server implements TCPConnectionListener {
     private static final int LIMIT = 2;
     private final Map<String, TCPConnection> connections = new HashMap<>();
-    protected Map<Commands, Function> commands = new EnumMap<>(Commands.class);
-    protected Map<String, String> players = new HashMap<>();
+    private Map<Commands, Function> commands = new EnumMap<>(Commands.class);
+    private Map<String, String> players = new HashMap<>();
     private Gson gson = new Gson();
     private CommandFactory factory = new CommandFactoryImpl();
 
     private Server() {
         System.out.println("Server running...");
-        commands.put(Commands.REGISTRATION, (value, conn) -> {
+        commands.put(Commands.REGISTER, (value, conn) -> {
             RegistrationRequest request = gson.fromJson(value, RegistrationRequest.class);
             players.put(request.getClientName(), conn.toString());
+        });
+        commands.put(Commands.UNREGISTER, (value, conn) -> {
+            RegistrationRequest request = gson.fromJson(value, RegistrationRequest.class);
+            players.remove(request.getClientName(), conn.toString());
         });
         commands.put(Commands.REQUEST, (value, conn) -> {
             RqCommand rqCommand = gson.fromJson(value, RqCommand.class);
             if (rqCommand.getResponseBody() == null && rqCommand.getRequestBody() != null && !rqCommand.getRequestBody().isEmpty()) {
-               rqCommand.setResponseBody(players.keySet().stream().filter(s->!s.equalsIgnoreCase(rqCommand.getRequestBody())).findFirst().orElse(null));
+                rqCommand.setResponseBody(players.keySet().stream().filter(s -> !s.equalsIgnoreCase(rqCommand.getRequestBody())).findFirst().orElse(null));
             }
             connections.get(players.get(rqCommand.getRequestBody())).sendMessage(factory.getRequestCommand(rqCommand));
         });
@@ -57,6 +67,9 @@ public class Server implements TCPConnectionListener {
         new Server();
     }
 
+    /**
+     * Server has a limit of connections. We dont need more than two players. If the limit reached, we can't connect anymore
+     */
     @Override
     public synchronized void onConnectionReady(TCPConnection tcpConnection) {
         if (connections.size() >= LIMIT) {
@@ -65,18 +78,31 @@ public class Server implements TCPConnectionListener {
             tcpConnection.disconnect();
         } else {
             connections.put(tcpConnection.toString(), tcpConnection);
-            Message message = new Message ("Client connected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
+            Message message = new Message("Client connected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
             broadcast(factory.getMessageCommand(message));
         }
     }
 
+    /**
+     * on client disconnect, we must delete the player and connection from maps. When all players disconnected, the server closes
+     */
     @Override
     public synchronized void onDisconnect(TCPConnection tcpConnection) {
+        Map.Entry<String, TCPConnection> record = connections.entrySet().stream().filter(c -> c.getValue().equals(tcpConnection)).findAny().orElse(null);
+        String userName = "";
+        if (record != null) {
+            Map.Entry<String, String> entry = players.entrySet().stream().filter(p -> p.getValue().equals(record.getKey())).findAny().orElse(null);
+            userName = entry != null ? entry.getKey() : "";
+        }
         connections.remove(tcpConnection.toString());
-        Message message = new Message ("Client disconnected: " + tcpConnection + ". the connections count is " + connections.size(), null, null);
+        Message message = new Message("Client disconnected: " + userName + ". the connections count is " + connections.size(), null, null);
         broadcast(factory.getMessageCommand(message));
+        if (connections.size() == 0) System.exit(0);
     }
 
+    /**
+     * When server gets command, we get from enummap a specified function and invoke it
+     */
     @Override
     public synchronized void onReceiveMessage(TCPConnection tcpConnection, Command command) throws IOException {
         commands.get(command.getType()).invoke(command.getData(), tcpConnection);

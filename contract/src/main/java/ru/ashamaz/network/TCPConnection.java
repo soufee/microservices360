@@ -6,7 +6,11 @@ import java.io.*;
 import java.net.Socket;
 import java.util.Objects;
 
-public class TCPConnection implements Serializable {
+/**
+ * The main transport class
+ * In constructor we create new Socket and streams for serialize and transport objects of type Command
+ */
+public class TCPConnection {
     private final Socket socket;
     private final Thread rxThread;
     private final ObjectInputStream inputStream;
@@ -46,6 +50,10 @@ public class TCPConnection implements Serializable {
         rxThread.start();
     }
 
+    /**
+     * For sending commands, we serialize them to byte array and write to outputstream
+     * Different implementation can use it in multithread mode, so it's synchronized
+     */
     public synchronized void sendMessage(Command command) {
         byte[] messageByteArray;
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -62,6 +70,9 @@ public class TCPConnection implements Serializable {
         }
     }
 
+    /**
+     * On disconnect, we must interrupt the thread and close socket
+     */
     public synchronized void disconnect() {
         rxThread.interrupt();
         try {
